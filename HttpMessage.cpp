@@ -1,4 +1,6 @@
 #include <string.h>
+#include <iostream>
+#include "StringManip.hpp"
 #include "HttpMessage.hpp"
 
 using namespace std;
@@ -18,9 +20,13 @@ std::unordered_map<int,string> statusCodes = {{100, "Continue"},{101, "Switching
     {503,"Service Unavailable"},{504,"Gateway Timeout"},{505,"HTTP Version Not Supported"},{506,"Variant Also Negotiates"},
     {507, "Insufficient Storage"},{508,"Loop Detected"},{510,"Not Extended"},{511,"Network Authentication Required"}};
 std::unordered_map<HttpMessage::Method,string> methodStrings = {{HttpMessage::Method::GET, "GET"},
-    {HttpMessage::Method::HEAD, "HEAD"},{HttpMessage::Method::POST, "POST"},{HttpMessage::Method::PUT, "PUT"},
+    {HttpMessage::Method::HEAD, "HEAD"},{HttpMessage::Method::POST, "POST"},{HttpMessage::Method::PUT, "PUT"},{HttpMessage::Method::PATCH, "PATCH"},
     {HttpMessage::Method::DELETE, "DELETE"},{HttpMessage::Method::CONNECT, "CONNECT"},{HttpMessage::Method::OPTIONS, "OPTIONS"},
     {HttpMessage::Method::TRACE, "TRACE"}};
+std::unordered_map<string,HttpMessage::Method> stringMethods = {{"GET", HttpMessage::Method::GET},
+    {"HEAD", HttpMessage::Method::HEAD},{"POST", HttpMessage::Method::POST},{"PUT", HttpMessage::Method::PUT},{"PATCH", HttpMessage::Method::PATCH},
+    {"DELETE", HttpMessage::Method::DELETE},{"CONNECT", HttpMessage::Method::CONNECT},{"OPTIONS", HttpMessage::Method::OPTIONS},
+    {"TRACE", HttpMessage::Method::TRACE}};
 
 HttpMessage::HttpMessage(int status, std::unordered_map<std::string,std::string> head, std::string bod, string reason)
 {
@@ -38,17 +44,29 @@ HttpMessage::HttpMessage(Method method, std::string uri, std::unordered_map<std:
     body = bod;
 }
 
-HttpMessage::HttpMessage(int socketId, int timeout, int maxLength, function<int(int,char*,int)> reader)
+HttpMessage::HttpMessage(int socketId, function<int(int,char*,int)> reader)
 {
     int readBytes = 0;
     char buffer[1024];
+    string requestString;
 
     do
     {
         memset(buffer, 0, sizeof(buffer));
-        readBytes = reader(socketId, buffer, 1024);
-    } while (readBytes > 0);
-    
+        reader(socketId, buffer, 1024);
+        requestString += buffer;
+    } while (buffer[1023] != 0);
+
+    parseString(requestString);
+}
+
+void HttpMessage::parseString(string requestString)
+{
+    httpMethod = stringMethods[parseToDelim(requestString, " ")];
+    requestUri = parseToDelim(requestString.substr(methodStrings[httpMethod].length() + 1), " ");
+    int lineBegin = requestString.find_first_of('\n') + 1;
+    headers = parseMap(parseToDelim(requestString.substr(lineBegin), "\r\n\r\n"), ": ", "\r\n");
+    body = requestString.substr(requestString.find("\r\n\r\n") + 4);
 }
 
 void HttpMessage::setHttpMethod(Method method)
@@ -86,10 +104,7 @@ string HttpMessage::printBodyAndHeaders()
 {
     string output;
 
-    for (auto i = headers.begin(); i != headers.end(); i++)
-    {
-        output += i->first + ": " + i->second + "\n";
-    }
+    for (const auto & [key, value] : headers) output += key + ": " + value + "\n";
 
     return output + "\n" + body;
 }
@@ -102,4 +117,9 @@ string HttpMessage::printAsResponse()
 string HttpMessage::printAsRequest()
 {
     return methodStrings[httpMethod] + " " + requestUri +" HTTP/1.1\n" + printBodyAndHeaders();
+}
+
+string HttpMessage::getHttpMethodAsString()
+{
+    return methodStrings[httpMethod];
 }
