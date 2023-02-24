@@ -1,12 +1,11 @@
 #include <iostream>
 #include "Socket.hpp"
-#define PORT 8080
 
 using namespace std;
 
 int main(int argc, char const* argv[])
 {
-	Socket listeningSocket(PORT);
+	Socket listeningSocket(8080);
 	listeningSocket.listenPort();
 	Connection inboundConnection = listeningSocket.openConnection();
 	HttpMessage request = inboundConnection.blockingReceiveData();
