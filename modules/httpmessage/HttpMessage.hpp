@@ -5,7 +5,7 @@
 #include <functional>
 class HttpMessage {
     public:
-    enum Method {GET,HEAD,POST,PUT,PATCH,DELETE,CONNECT,OPTIONS,TRACE};
+    enum Method {GET,HEAD,POST,PUT,PATCH,DELETE,CONNECT,OPTIONS,TRACE,ERROR,NONE};
 
     protected:
     int statusCode;
@@ -23,14 +23,23 @@ class HttpMessage {
     HttpMessage(Method method, std::string uri = "*", std::unordered_map<std::string,std::string> headers = {}, std::string body = "");
     HttpMessage(int socketId, std::function<int(int,char*,int)> reader);
     
+    void setStatus(int statusCode);
     void setHttpMethod(Method method);
     void setRequestUri(std::string uri);
+    void setStatusReason(std::string statusReason);
     void setHeader(std::string header,std::string value);
     void setBody(std::string content);
-    void setStatus(int statusCode);
     void removeHeader(std::string header);
+    int getStatusCode();
+    Method getHttpMethod();
+    std::string getRequestUri();
+    std::string getStatusReason();
+    std::unordered_map<std::string,std::string> getHeaders();
+    std::string getBody();
     std::string getHttpMethodAsString();
     std::string printAsResponse();
     std::string printAsRequest();
+
+    bool operator==(const HttpMessage&) const;
 };
 #endif
