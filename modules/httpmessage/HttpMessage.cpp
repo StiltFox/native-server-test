@@ -127,7 +127,7 @@ void HttpMessage::setStatus(int status)
     statusReason = getReasonCode(status);
 }
 
-string HttpMessage::printBodyAndHeaders()
+string HttpMessage::printBodyAndHeaders() const
 {
     string output;
 
@@ -136,17 +136,17 @@ string HttpMessage::printBodyAndHeaders()
     return output + "\r\n" + body;
 }
 
-string HttpMessage::printAsResponse()
+string HttpMessage::printAsResponse() const
 {
     return "HTTP/1.1 " + to_string(statusCode) + " " + statusReason+"\r\n" + printBodyAndHeaders();
 }
 
-string HttpMessage::printAsRequest()
+string HttpMessage::printAsRequest() const
 {
     return getStringMethod(httpMethod) + " " + requestUri +" HTTP/1.1\r\n" + printBodyAndHeaders();
 }
 
-string HttpMessage::getHttpMethodAsString()
+string HttpMessage::getHttpMethodAsString() const
 {
     return getStringMethod(httpMethod);
 }
@@ -162,32 +162,32 @@ void HttpMessage::setStatusReason(string reason)
     statusReason = reason;
 }
 
-int HttpMessage::getStatusCode()
+int HttpMessage::getStatusCode() const
 {
     return statusCode;
 }
 
-HttpMessage::Method HttpMessage::getHttpMethod()
+HttpMessage::Method HttpMessage::getHttpMethod() const
 {
     return httpMethod;
 }
 
-string HttpMessage::getRequestUri()
+string HttpMessage::getRequestUri() const
 {
     return requestUri;
 }
 
-string HttpMessage::getStatusReason()
+string HttpMessage::getStatusReason() const
 {
     return statusReason;
 }
 
-unordered_map<string,string> HttpMessage::getHeaders()
+unordered_map<string,string> HttpMessage::getHeaders() const
 {
     return headers;
 }
 
-string HttpMessage::getBody()
+string HttpMessage::getBody() const
 {
     return body;
 }

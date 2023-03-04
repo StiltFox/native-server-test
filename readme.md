@@ -5,7 +5,7 @@ This code is provided without warranty or any support.
 
 Stilt Fox™ is not liable for any damages done to your hardware. For more information see LICENSE file.
 
-Stilt Fox™ is trademarked. You may not use the Stilt Fox name, however this code is free to reference and use.
+Stilt Fox™ is trademarked. You may not use the Stilt Fox™ name, however this code is free to reference and use.
 
 # Compiling the API
 

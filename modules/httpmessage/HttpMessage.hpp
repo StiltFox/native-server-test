@@ -15,7 +15,7 @@ class HttpMessage {
     std::unordered_map<std::string,std::string> headers;
     std::string body;
 
-    std::string printBodyAndHeaders();
+    std::string printBodyAndHeaders() const;
     void parseString(std::string);
 
     public:
@@ -30,15 +30,15 @@ class HttpMessage {
     void setHeader(std::string header,std::string value);
     void setBody(std::string content);
     void removeHeader(std::string header);
-    int getStatusCode();
-    Method getHttpMethod();
-    std::string getRequestUri();
-    std::string getStatusReason();
-    std::unordered_map<std::string,std::string> getHeaders();
-    std::string getBody();
-    std::string getHttpMethodAsString();
-    std::string printAsResponse();
-    std::string printAsRequest();
+    int getStatusCode() const;
+    Method getHttpMethod() const;
+    std::string getRequestUri() const;
+    std::string getStatusReason() const;
+    std::unordered_map<std::string,std::string> getHeaders() const;
+    std::string getBody() const;
+    std::string getHttpMethodAsString() const;
+    std::string printAsResponse() const;
+    std::string printAsRequest() const;
 
     bool operator==(const HttpMessage&) const;
 };

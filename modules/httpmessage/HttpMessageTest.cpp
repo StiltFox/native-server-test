@@ -1,6 +1,21 @@
 #include <gtest/gtest.h>
 #include "HttpMessage.hpp"
-#include <iostream>
+
+void PrintTo(const HttpMessage& message, std::ostream* stream)
+{
+    *stream << "statusCode: " << message.getStatusCode() << std::endl
+        << "httpMethod: " << message.getHttpMethod() << std::endl
+        << "requestUri: " << message.getRequestUri() << std::endl
+        << "statusReason: " << message.getStatusReason() << std::endl
+        << "body: " << message.getBody() << std::endl << "headers: [";
+
+        for (auto const&[key, value] : message.getHeaders())
+        {
+            *stream << "\"" << key << "\": \"" << value << "\", ";
+        }
+
+        *stream << "]" << std::endl;
+}
 
 int getDataChunk(std::string wholeData, char* chunkBuffer, int chunkSize, int currentChunk)
 {
@@ -54,6 +69,24 @@ TEST(HttpMessage, reading_from_a_well_formed_socket_request_will_produce_a_well_
 
     //then we get back the desired http response
     ASSERT_EQ(actual, HttpMessage(HttpMessage::POST,"/an_endpoint",{{"header2","some_val2"},{"header","some_value"}},"this is my body"));
+}
+
+TEST(HttpMessage, reading_from_a_socket_that_does_not_have_headers_or_a_body_will_parse_properly)
+{
+    //given we have an http request with just the meta data
+    std::string dataToStream = "POST /an_endpoint HTTP/1.1";
+    int currentChunk = 0;
+
+    //when we read the socket, let's pretend it's 9080
+    HttpMessage actual(9080,[dataToStream, &currentChunk](int socketId, char* buffer, int chunksize)
+    {
+        int readBytes = getDataChunk(dataToStream, buffer, chunksize, currentChunk);
+        currentChunk++;
+        return readBytes;
+    });
+
+    //then we get back the desired http response
+    ASSERT_EQ(actual, HttpMessage(HttpMessage::POST, "/an_endpoint"));
 }
 
 TEST(HttpMessage, reading_from_an_invalid_socket_request_will_not_cause_a_seg_fault)
