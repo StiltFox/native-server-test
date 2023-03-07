@@ -82,49 +82,37 @@ HttpMessage::HttpMessage(int socketId, function<int(int,char*,int)> reader)
 void HttpMessage::parseString(string requestString)
 {
     statusCode = 0;
+    int currentPosition = 0;
     string methodString = parseToDelim(requestString, " ");
     httpMethod = getMethodFromString(methodString);
-    requestUri = parseToDelim(requestString.substr(methodString.length() + 1), " ");
-    int lineBegin = requestString.find_first_of('\n') + 1;
-    headers = parseMap(parseToDelim(requestString.substr(lineBegin), "\r\n\r\n"), ": ", "\r\n");
-    body = requestString.substr(requestString.find("\r\n\r\n") + 4);
+    currentPosition += methodString.length() + 1;
 
-    if (httpMethod == Method::ERROR)
+    if (currentPosition < requestString.length())
     {
-        statusCode = 500;
-        statusReason = "Internal Server Error";
+        requestUri = parseToDelim(requestString.substr(currentPosition), " ");
+        if (requestUri.find("\n") != string::npos) requestUri = "";
+        currentPosition += requestUri.length() + 1;
+        if (currentPosition < requestString.length())
+        {
+            currentPosition = requestString.find('\n') + 1;
+            if (0 < currentPosition && currentPosition < requestString.length())
+            {
+                if (requestString.substr(currentPosition).starts_with("\r\n"))
+                {
+                    body = requestString.substr(currentPosition + 2);
+                }
+                else
+                {
+                    headers = parseMap(parseToDelim(requestString.substr(currentPosition), "\r\n\r\n"), ": ", "\r\n");
+                    currentPosition = requestString.find("\r\n\r\n");
+                    if (0 < currentPosition && currentPosition+4 < requestString.length())
+                    {
+                        body = requestString.substr(currentPosition+4);
+                    }
+                }
+            }
+        }
     }
-}
-
-void HttpMessage::setHttpMethod(Method method)
-{
-    httpMethod = method;
-}
-
-void HttpMessage::setRequestUri(string uri)
-{
-    requestUri = uri;
-}
-
-void HttpMessage::setHeader(string header, string value)
-{
-    headers[header] = value;
-}
-
-void HttpMessage::removeHeader(string header)
-{
-    headers.erase(header);
-}
-
-void HttpMessage::setBody(string content)
-{
-    body = content;
-}
-
-void HttpMessage::setStatus(int status)
-{
-    statusCode = status;
-    statusReason = getReasonCode(status);
 }
 
 string HttpMessage::printBodyAndHeaders() const
@@ -153,41 +141,6 @@ string HttpMessage::getHttpMethodAsString() const
 
 bool HttpMessage::operator==(const HttpMessage& other) const
 {
-    return statusCode == other.statusCode && httpMethod == other.httpMethod && requestUri == other.requestUri 
+    return statusCode == other.statusCode && httpMethod == other.httpMethod && requestUri == other.requestUri
         && statusReason == other.statusReason && headers == other.headers && body == other.body;
-}
-
-void HttpMessage::setStatusReason(string reason)
-{
-    statusReason = reason;
-}
-
-int HttpMessage::getStatusCode() const
-{
-    return statusCode;
-}
-
-HttpMessage::Method HttpMessage::getHttpMethod() const
-{
-    return httpMethod;
-}
-
-string HttpMessage::getRequestUri() const
-{
-    return requestUri;
-}
-
-string HttpMessage::getStatusReason() const
-{
-    return statusReason;
-}
-
-unordered_map<string,string> HttpMessage::getHeaders() const
-{
-    return headers;
-}
-
-string HttpMessage::getBody() const
-{
-    return body;
 }

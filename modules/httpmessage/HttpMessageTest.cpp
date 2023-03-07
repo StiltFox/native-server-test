@@ -3,13 +3,13 @@
 
 void PrintTo(const HttpMessage& message, std::ostream* stream)
 {
-    *stream << "statusCode: " << message.getStatusCode() << std::endl
-        << "httpMethod: " << message.getHttpMethod() << std::endl
-        << "requestUri: " << message.getRequestUri() << std::endl
-        << "statusReason: " << message.getStatusReason() << std::endl
-        << "body: " << message.getBody() << std::endl << "headers: [";
+    *stream << "statusCode: " << message.statusCode << std::endl
+        << "httpMethod: " << message.httpMethod << std::endl
+        << "requestUri: " << message.requestUri << std::endl
+        << "statusReason: " << message.statusReason << std::endl
+        << "body: " << message.body << std::endl << "headers: [";
 
-        for (auto const&[key, value] : message.getHeaders())
+        for (auto const&[key, value] : message.headers)
         {
             *stream << "\"" << key << "\": \"" << value << "\", ";
         }
@@ -123,6 +123,63 @@ TEST(HttpMessage, reading_from_a_socket_that_does_not_have_headings_will_parse_p
 
     //then we get back the desired http response
     ASSERT_EQ(actual, HttpMessage(HttpMessage::POST, "/an_endpoint", {}, "This is a body"));
+}
+
+TEST(HttpMessage, reading_from_a_socket_request_with_an_unknown_method_will_set_httpMethod_to_error)
+{
+    //given we have an http request with an unknown method
+    std::string dataToStream = "PICKLE /an_endpoint HTTP/1.1\r\nheader2: some_val2\r\nheader: some_value\r\n\r\nthis is my body";
+    int currentChunk = 0;
+
+    //when we read the socket, let's pretend it's 9080
+    HttpMessage actual(9080,[dataToStream, &currentChunk](int socketId, char* buffer, int chunksize)
+    {
+        int readBytes = getDataChunk(dataToStream, buffer, chunksize, currentChunk);
+        currentChunk++;
+        return readBytes;
+    });
+
+    //then we get back that the method is not allowed
+    HttpMessage expectedMessage(HttpMessage::ERROR,"/an_endpoint",{{"header2","some_val2"},{"header","some_value"}},"this is my body");
+    ASSERT_EQ(actual, expectedMessage);
+}
+
+TEST(HttpMessage, reading_from_a_socket_without_an_endpoint_will_finish_parsing)
+{
+    //given we have an http request without an endpoint
+    std::string endpointMissing = "POST  HTTP/1.1\r\nheader2: some_val2\r\nheader: some_value\r\n\r\nthis is my body";
+    int currentChunk = 0;
+
+    //when we read the socket, let's pretend it's 9080
+    HttpMessage actual(9080,[endpointMissing, &currentChunk](int socketId, char* buffer, int chunksize)
+    {
+        int readBytes = getDataChunk(endpointMissing, buffer, chunksize, currentChunk);
+        currentChunk++;
+        return readBytes;
+    });
+
+    //then we get back that the message is malformed
+    HttpMessage expectedMessage(HttpMessage::POST,"",{{"header2","some_val2"},{"header","some_value"}},"this is my body");
+    ASSERT_EQ(actual, expectedMessage);
+}
+
+TEST(HttpMessage, reading_from_a_socket_without_an_endpoint_or_space_will_finish_parsing)
+{
+    //given we have an http request without an endpoint
+    std::string endpointMissingWithoutSpace = "POST HTTP/1.1\r\nheader2: some_val2\r\nheader: some_value\r\n\r\nthis is my body";
+    int currentChunk = 0;
+
+    //when we read the socket, let's pretend it's 9080
+    HttpMessage actualNoSpace(9080,[endpointMissingWithoutSpace, &currentChunk](int socketId, char* buffer, int chunksize)
+    {
+        int readBytes = getDataChunk(endpointMissingWithoutSpace, buffer, chunksize, currentChunk);
+        currentChunk++;
+        return readBytes;
+    });
+
+    //then we get back that the message is malformed
+    HttpMessage expectedMessageWithoutSpace(HttpMessage::POST,"",{{"header2","some_val2"},{"header","some_value"}},"this is my body");
+    ASSERT_EQ(actualNoSpace, expectedMessageWithoutSpace);
 }
 
 TEST(HttpMessage, reading_from_an_invalid_socket_request_will_not_cause_a_seg_fault)

@@ -2,18 +2,18 @@
 
 using namespace std;
 
-string parseLine(string inputStr)
+string parseLine(const string& inputStr)
 {
     return parseToDelim(inputStr, "\r\n", true);
 }
 
-string parseToDelim(string toParse, string delim, bool matchAny)
+string parseToDelim(const string& toParse, const string& delim, bool matchAny)
 {
     int pos = matchAny ? toParse.find_first_of(delim) : toParse.find(delim);
     return pos > -1 ? toParse.substr(0,pos) : toParse;
 }
 
-unordered_map<string,string> parseMap(string toParse, string valueDelim, string entryDelim)
+unordered_map<string,string> parseMap(const string& toParse, const string& valueDelim, const string& entryDelim)
 {
     unordered_map<string,string> output;
 
@@ -26,7 +26,7 @@ unordered_map<string,string> parseMap(string toParse, string valueDelim, string 
         currentPos += key.length() + valueDelim.length();
         if (currentPos < toParse.length()) 
         {
-            value = parseToDelim(toParse.substr(currentPos), entryDelim);
+            value = parseToDelim((const string)toParse.substr(currentPos), entryDelim);
             currentPos += value.length() + entryDelim.length();
         } 
         output[key] = value;
