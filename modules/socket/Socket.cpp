@@ -64,13 +64,10 @@ bool Socket::listenPort()
     return output;
 }
 
-Connection Socket::openConnection()
+Connection* Socket::openConnection()
 {
     int addrlen = sizeof(address);
-
-    Connection output(accept(socketHandle,(struct sockaddr*)&address,(socklen_t*)&addrlen));
-
-    return output;
+    return new Connection(accept(socketHandle,(struct sockaddr*)&address,(socklen_t*)&addrlen));
 }
 
 void Socket::closePort()

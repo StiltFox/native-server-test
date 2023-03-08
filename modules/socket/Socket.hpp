@@ -22,7 +22,7 @@ class Socket
     public:
     Socket(int portNumber, int queueSize = 3);
     bool listenPort();
-    Connection openConnection();
+    Connection* openConnection();
     void closePort();
     ~Socket();
 };

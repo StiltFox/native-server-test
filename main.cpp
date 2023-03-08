@@ -12,18 +12,19 @@ int main(int argc, char const* argv[])
 		
 	while (!shutdown)
 	{
-		Connection inboundConnection = listeningSocket.openConnection();
-		HttpMessage request = inboundConnection.blockingReceiveData();
+		Connection* inboundConnection = listeningSocket.openConnection();
+		HttpMessage request = inboundConnection->blockingReceiveData();
 
 		cout << "-------------------------" << endl 
 			<< request.printAsRequest() << endl 
 			<< "-------------------------" << endl;
 
 		HttpMessage msg(200,{{"content-type","application/json"}},"{\"message\":\"You sent a " + request.getHttpMethodAsString() + " request!\"}");
-		inboundConnection.sendData(msg);
+		inboundConnection->sendData(msg);
 		cout << msg.printAsResponse()<<endl
 			<< "-------------------------" << endl;
 
+		delete inboundConnection;
 		shutdown = request == KILL_MESSAGE;
 	}
 
