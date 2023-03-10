@@ -1,6 +1,7 @@
 #ifdef MAC
     #include <sys/types.h>
 #endif
+#include <fcntl.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include "Socket.hpp"
@@ -10,7 +11,12 @@ Connection::Connection(int handle)
     this->handle = handle;
 }
 
-HttpMessage Connection::blockingReceiveData()
+int Connection::getHandle()
+{
+    return handle;
+}
+
+HttpMessage Connection::receiveData()
 {
     return HttpMessage(handle, &read);
 }
@@ -70,6 +76,16 @@ Connection* Socket::openConnection()
     return new Connection(accept(socketHandle,(struct sockaddr*)&address,(socklen_t*)&addrlen));
 }
 
+void Socket::sendData(HttpMessage data)
+{
+    int addrlen = sizeof(address);
+    if (connect(socketHandle, (struct sockaddr*)&address, (socklen_t)addrlen) >= 0)
+    {
+        std::string request = data.printAsRequest();
+        send(socketHandle, request.c_str(), request.length(),0);
+    }
+}
+
 void Socket::closePort()
 {
     if (socketHandle > -1)
@@ -77,6 +93,11 @@ void Socket::closePort()
         shutdown(socketHandle, SHUT_RDWR);
         socketHandle = -1;
     }
+}
+
+int Socket::getHandle()
+{
+    return socketHandle;
 }
 
 Socket::~Socket()
