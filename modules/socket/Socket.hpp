@@ -8,8 +8,9 @@ class Connection
 
     public:
     Connection(int handle);
-    HttpMessage blockingReceiveData();
+    HttpMessage receiveData();
     void sendData(HttpMessage data);
+    int getHandle();
     ~Connection();
 };
 
@@ -23,6 +24,8 @@ class Socket
     Socket(int portNumber, int queueSize = 3);
     bool listenPort();
     Connection* openConnection();
+    int getHandle();
+    void sendData(HttpMessage data);
     void closePort();
     ~Socket();
 };

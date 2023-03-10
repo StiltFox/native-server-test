@@ -21,6 +21,7 @@ struct HttpMessage {
     std::string printAsRequest() const;
 
     bool operator==(const HttpMessage&) const;
+    bool operator!=(const HttpMessage&) const;
 
     protected:
     std::string printBodyAndHeaders() const;

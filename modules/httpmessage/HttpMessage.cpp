@@ -144,3 +144,9 @@ bool HttpMessage::operator==(const HttpMessage& other) const
     return statusCode == other.statusCode && httpMethod == other.httpMethod && requestUri == other.requestUri
         && statusReason == other.statusReason && headers == other.headers && body == other.body;
 }
+
+bool HttpMessage::operator!=(const HttpMessage& other) const
+{
+    return !(statusCode == other.statusCode && httpMethod == other.httpMethod && requestUri == other.requestUri
+        && statusReason == other.statusReason && headers == other.headers && body == other.body);
+}
