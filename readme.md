@@ -44,14 +44,10 @@ While Windows is currently not supported natively (Maybe in the future), this pr
 # Project Structure
 ## Project Root
 ### readme.md
-This is the file that you are currently reading. It's intended to help people looking at your project get information
-about how to build or execute your project. All sorts of things can be included here from help documentation to legal
-information, and even this tutorial. A readme.md is essential for communicating to people looking at your project.
+This is the file that you are currently reading. It's intended to help people looking at your project get information about how to build or execute your project. All sorts of things can be included here from help documentation to legal information, and even this tutorial. A readme.md is essential for communicating to people looking at your project.
 
 ### LICENSE
-This file contains legal information about copyright and permissions granted to the reader. Are you allowed to use
-the code for commercial purposes? What rights do you have as a consumer of this code base? ect... It's boring but
-necessary.
+This file contains legal information about copyright and permissions granted to the reader. Are you allowed to use the code for commercial purposes? What rights do you have as a consumer of this code base? ect... It's boring but necessary.
 
 ### build.sh
 This is a helper script for Linux systems. This will create a build folder and run CMake to compile the program for you. No command line experience required. On some GUI Linux systems you can even double click the script to execute it, given you granted it the proper permissions.
