@@ -52,55 +52,78 @@ void listenToConnection(Connection* connection)
 	}
 }
 
+/*
+* This function is used to listen for the kill command. Most programs of this nature run as a Daemon or accept some sort of signal to shutdown,
+* however i'm going more the spring boot approach where this program stays running in the background on it's own port and can be proxied too.
+* That being said, while this may not be the best solution, for now we are opening a second port to listen for the kill command. Ideally this port
+* will not be public to other systems. Configure your firewall carefully! :)
+*/
 void listenForKillCommand(Socket* listeningSocket)
 {
-	const HttpMessage KILL_MESSAGE(HttpMessage::DELETE,"/non_public_uri",{{"host", "the_scp_foundation"},{"operation","kill"}}, "死神");
-	Socket killSocket(6000);
-	killSocket.listenPort();
-	HttpMessage response(HttpMessage::CONNECT);
-	bool cont = true;
+	const HttpMessage KILL_MESSAGE(HttpMessage::DELETE,"/non_public_uri",{{"host", "the_scp_foundation"},{"operation","kill"}}, "死神"); //this message, if received will kill our server!!
+	Socket killSocket(6000); //Open up the socket
+	killSocket.listenPort(); //Request to start listening
+	bool cont = true; //Our loop condition. Continue is a reserved word so I had to use an abbreviation.
 
-	while (cont)
+	while (cont) //This loop will end once the kill command is received allowing this thread to die and take the others with it.
 	{
-		Connection* killConnection = killSocket.openConnection();
-		response = killConnection->receiveData();
-		string body;
+		Connection* killConnection = killSocket.openConnection(); //wait for a connection. This blocks the thread
+		HttpMessage response = killConnection->receiveData(); //receive the data.
+		string body; // this will be used for the body of our response
 
-		if (response == KILL_MESSAGE)
+		if (response == KILL_MESSAGE) //Did we get a kill message?
 		{
-			cont = false;
-			body = "\"俺は死んでいます。\"";
-			listeningSocket->closePort();
+			cont = false; // stop looping
+			body = "\"俺は死んでいます。\""; //Cry and dramatically raise our hands to the setting sun as we shut down. Sad music plays here.
+			listeningSocket->closePort(); //And this is the part in the horror movie where the villain cuts the phone lines.
 		}
-		else
+		else //but wait! it could be a false alarm.
 		{
-			body = "\"何ですか。\"";
+			body = "\"何ですか。\""; //ridicule your enemy for trying to stop your progress! what was that?! huh?!
 		}
 
-		HttpMessage msg(200,{{"content-type", "application/json"}},"{\"message\":" + body + "}");
-		killConnection->sendData(msg);
-		delete killConnection;
-		
-		lock_guard<mutex> guard(consoleWriteMutex);
-		cout << "kill request received: "<< (cont ? "[continuing]" : "[terminated]");
-		cout << endl;
+		HttpMessage msg(200,{{"content-type", "application/json"}},"{\"message\":" + body + "}"); //Let's calmly construct a message to send back to our assassin.
+		killConnection->sendData(msg); //Message sent!
+		delete killConnection; //And kill the connection with the client. Wouldn't want them to get back in.
+		                       //remember you must delete any heap allocated pointers. This prevents memory leaks.
+		lock_guard<mutex> guard(consoleWriteMutex); //secure a lock on the console write command
+		cout << "kill request received: "<< (cont ? "[continuing]" : "[terminated]"); //Output a tragic news report about our story.
+		cout << endl; //fin.
 	}
 }
 
+/*
+* This is the main entry point to our program. The parameters can be ignored for now as we're not taking anything in from the console.
+* The return value tells the operating system how we did. Anything other than zero is interpreted as an error. Looking up what went wrong
+* is the caller's responsibility not ours, so we best document our outputs well. Good thing we only output success because everything we do
+* is successful.
+*/
 int main(int argc, char const* argv[])
 {
-	Socket listeningSocket(8080);
-	listeningSocket.listenPort();
+	Socket listeningSocket(8080); //Get a socket on port 8080.
+	listeningSocket.listenPort(); //Start listening to port 8080.
 
-	thread killThread(listenForKillCommand, &listeningSocket);
+	thread killThread(listenForKillCommand, &listeningSocket); //Start a new thread that will run the listenForKillCommand function. Pass it the socket memory address.
 		
-	while (listeningSocket.getHandle() > -1)
+	while (listeningSocket.getHandle() > -1) //loop until the socket is closed.
 	{
-		Connection* connection = listeningSocket.openConnection();
-		thread listenerThread(listenToConnection, connection);
-		listenerThread.detach();
+		Connection* connection = listeningSocket.openConnection(); //This function will block the thread while looking for a connection. This prevents us from chewing up too many resources.
+		thread listenerThread(listenToConnection, connection); //spin up a new thread
+		listenerThread.detach(); //This detaches the thread from the object, meaning that the thread continues to run even if the object goes out of scope.
 	}
 
-	killThread.join();
-	return 0;
+	killThread.join(); //wait for the kill thread to finish processing.
+	return 0; //close the program with no errors.
 }
+
+/*
+* This program is a work in progress and many things can be made to make this better. If you want to have fun playing with this code,
+* here are some improvement ideas!
+*
+* Make the program read from a config file instead of hardcoding port numbers and messages.
+* Make a switch statement that does different things based on endpoint and http method type.
+* Implement SSL and TLS.
+* Implement a configurable limit on the number of listening threads that can be open.
+*
+* And those are just a few ideas.
+*/
