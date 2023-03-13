@@ -129,46 +129,57 @@ HttpMessage::HttpMessage(Method method, std::string uri, std::unordered_map<std:
 */
 HttpMessage::HttpMessage(int socketId, function<int(int,char*,int)> reader)
 {
-    int readBytes = 0;
-    char buffer[1024];
-    string requestString;
+    char buffer[1024]; // Because we dont know how much data is being sent to us we will perform a buffered read. This byte
+                       // array is the maximum number of bytes we can read per pass through the loop.
+    string requestString; // This is the string where the data will be appended to from the buffer. We will parse this later.
 
+    // This is the loop that will read the data from the socket.
     do
     {
-        memset(buffer, 0, sizeof(buffer));
-        reader(socketId, buffer, 1024);
-        requestString += buffer;
-    } while (buffer[1023] != 0);
+        memset(buffer, 0, sizeof(buffer)); //set the buffer to all zeros. This will clear out any previous data and insure
+                                           //that if partial data is set, that we will eventually end on a 0x00 or unicode
+                                           // null.
+        reader(socketId, buffer, 1024); // we call the reader function passed into here with the socket id and buffer.
+        requestString += buffer; // append the buffer to the output.
+    } while (buffer[1023] != 0); // if the buffer does not end in unicode null, then we loop again to get more data.
 
-    parseString(requestString);
+    parseString(requestString); //Now that we have the data we parse it.
 }
 
+/*
+* This is the function that takes the string and converts it into an HTTP message.
+*/
 void HttpMessage::parseString(string requestString)
 {
-    statusCode = 0;
-    int currentPosition = 0;
-    string methodString = parseToDelim(requestString, " ");
-    httpMethod = getMethodFromString(methodString);
-    currentPosition += methodString.length() + 1;
+    statusCode = 0; // because C++ does not initialize variables by default it's best to make sure that there is no
+                    // random garbage stored here.
+    int currentPosition = 0; // This variable keeps track of where we are in the string.
+    string methodString = parseToDelim(requestString, " "); // parseToDelim is defined in stringmanip. //This line grabs the
+                                                            // http method.
+    httpMethod = getMethodFromString(methodString); // This will convert the string to an enum. see function above.
+    currentPosition += methodString.length() + 1;  // Because arrays start at index zero we need to subtract 1 from the length.
 
-    if (currentPosition < requestString.length())
+    if (currentPosition < requestString.length()) // Make sure we are not at the end of the request.
     {
-        requestUri = parseToDelim(requestString.substr(currentPosition), " ");
-        if (requestUri.find("\n") != string::npos) requestUri = "";
-        currentPosition += requestUri.length() + 1;
+        requestUri = parseToDelim(requestString.substr(currentPosition), " "); // We grab the request url next.
+        if (requestUri.find("\n") != string::npos) requestUri = ""; // if we for some reason hit end of file this was improperly
+                                                                    // parsed so we set it to empty.
+        currentPosition += requestUri.length() + 1; // update our position again, then check if we're at end of string.
         if (currentPosition < requestString.length())
         {
-            currentPosition = requestString.find('\n') + 1;
-            if (0 < currentPosition && currentPosition < requestString.length())
+            currentPosition = requestString.find('\n') + 1; // skip the http version, we don't care.
+            if (0 < currentPosition && currentPosition < requestString.length()) //make sure there's data after the new line.
             {
-                if (requestString.substr(currentPosition).starts_with("\r\n"))
+                // If we hit a new line right away we know that there are no headers. So we parse the body.
+                if (requestString.substr(currentPosition).starts_with("\r\n")) 
                 {
-                    body = requestString.substr(currentPosition + 2);
+                    body = requestString.substr(currentPosition + 2); // we add 2 to the current position to skip the white space.
                 }
-                else
+                else //if we get here that means that we have http headers.
                 {
+                    //we use parse map and parse to delim to get the headers
                     headers = parseMap(parseToDelim(requestString.substr(currentPosition), "\r\n\r\n"), ": ", "\r\n");
-                    currentPosition = requestString.find("\r\n\r\n");
+                    currentPosition = requestString.find("\r\n\r\n"); // then we check if we have a body and parse that.
                     if (0 < currentPosition && currentPosition+4 < requestString.length())
                     {
                         body = requestString.substr(currentPosition+4);
@@ -179,6 +190,7 @@ void HttpMessage::parseString(string requestString)
     }
 }
 
+//This function outputs the body and headers of the Http Message to a string.
 string HttpMessage::printBodyAndHeaders() const
 {
     string output;
@@ -188,29 +200,36 @@ string HttpMessage::printBodyAndHeaders() const
     return output + "\r\n" + body;
 }
 
+// this method outputs a string formatting the Http message as a response.
 string HttpMessage::printAsResponse() const
 {
     return "HTTP/1.1 " + to_string(statusCode) + " " + statusReason+"\r\n" + printBodyAndHeaders();
 }
 
+// this method outputs a string formatting the Http message as a request.
 string HttpMessage::printAsRequest() const
 {
     return getStringMethod(httpMethod) + " " + requestUri +" HTTP/1.1\r\n" + printBodyAndHeaders();
 }
 
+// return the Method as a string instead of an Enum.
 string HttpMessage::getHttpMethodAsString() const
 {
     return getStringMethod(httpMethod);
 }
 
+// Overload the comparison operator to work on two Http Messages
 bool HttpMessage::operator==(const HttpMessage& other) const
 {
     return statusCode == other.statusCode && httpMethod == other.httpMethod && requestUri == other.requestUri
         && statusReason == other.statusReason && headers == other.headers && body == other.body;
 }
 
+// Overload the not equals operator to work on Http Messages
 bool HttpMessage::operator!=(const HttpMessage& other) const
 {
     return !(statusCode == other.statusCode && httpMethod == other.httpMethod && requestUri == other.requestUri
         && statusReason == other.statusReason && headers == other.headers && body == other.body);
 }
+
+//to continue this tutorial please continue to HttpMessageTest.cpp
