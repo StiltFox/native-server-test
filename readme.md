@@ -20,6 +20,10 @@ Supported Systems:
     - must be version 3.0.0 or higher
 - A C++ compiler should be installed
     - Clang and G++ are good examples
+- Run sudo ./install_libraries.sh
+    - this will install libraries required for this project
+    - you only need to run this once
+    - this is not a part of the build process
 
 ## Not Required but Recommended
 - Visual Studio Code
@@ -54,6 +58,9 @@ This is a helper script for Linux systems. This will create a build folder and r
 
 ### build_mac.sh
 This is the same thing as build.sh, but for Mac computers. This is important as the build environments are not the same. Be sure to run the proper helper file if you wish to compile this way.
+
+### install_libraries.sh
+This is used to install libraries that this project depends on, for example google test. This will allow find package to work. You may have to run this with sudo.
 
 ### .gitignore
 This file prevents git from uploading things like IDE preferences or large binary files. A healthy gitignore will get your repository to basically only store the code, and files relevant to running your repository.
